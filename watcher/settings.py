@@ -14,3 +14,9 @@ ACCESS_TOKEN = config('ACCESS_TOKEN')
 ACCESS_TOKEN_SECRET = config('ACCESS_TOKEN_SECRET')
 
 FAVORITES_FILE = path('favorites.txt')
+
+BROKER_URL = config('BROKER_URL', default='amqp://guest:guest@localhost:5672')
+
+RPC_CONFIG = {
+    'AMQP_URI': BROKER_URL
+}
