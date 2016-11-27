@@ -38,11 +38,8 @@ class FavoritedTweetsListener(StreamListener):
         """
         self.theuser = self.api.me()
         print('API User: {}'.format(self.theuser))
-        # using option 'a' for appending new entry to file.
-        self.fav_marks = open(settings.FAVORITES_FILE, 'a')
 
     def on_data(self, raw_data):
-        self.fav_marks.write(raw_data)
         data = json.loads(raw_data)
 
         if 'event' in data:
@@ -114,11 +111,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         logging.info('exiting')
         stream.disconnect()
-        pass
-    finally:
-        listener.fav_marks.close()
-
-
 
 
 #   public_tweets = api.home_timeline()
