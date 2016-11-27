@@ -68,15 +68,9 @@ class FavoritedTweetsListener(StreamListener):
     def on_event(self, status):
         """Called when a new event arrives"""
         if status.source['id'] == self.theuser.id:
-            if status.event == FAVORITE:
-                print(status.target_object['text'])
-                with ClusterRpcProxy(settings.RPC_CONFIG) as rpc:
-                    res = rpc.tweet_favorites_service.process_tweet.call_async(
-                            status.source, status.target_object)
-                    print('*' * 20)
-                    print(res.result())
-            else:
-                print('User unfavorited tweet')
+            with ClusterRpcProxy(settings.RPC_CONFIG) as rpc:
+                rpc.tweet_favorites_service.process_tweet.call_async(
+                        status.source, status.target_object, status.event)
 
         return
 
