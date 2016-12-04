@@ -1,1 +1,2 @@
 nameko==2.4.3
+python-decouple==3.0

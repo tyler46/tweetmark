@@ -5,7 +5,9 @@ import requests
 from requests.exceptions import ConnectionError, RequestException
 from requests.status_codes import codes
 
-import config
+import settings
+
+logger = settings.logger
 
 VALID_STATUS_CODES = (
     codes.ok,  # 200
@@ -25,22 +27,57 @@ def get_twitter_public_url(screen_name):
     return 'https://twitter.com/{}'.format(screen_name)
 
 
+class MailService:
+
+    name ='mail_service'
+
+    @rpc
+    def send(self, subject, text=None):
+        if text is None:
+            # Mailgun requires to have a non empty text body
+            text = 'No body message'
+
+        if settings.DEBUG:
+            logger.debug('Sending email with subject {0} with contents: {1}'.format(subject, text))
+            return
+
+        try:
+            response = requests.post(
+                settings.SANDBOX_URL,
+                auth=('api': settings.MAILGUN_API_KEY),
+                data={'from': settings.SENDER,
+                    'to': settings.RECEIVER,
+                    'subject': subject,
+                    'text': text})
+            if response.status_code not in VALID_STATUS_CODES:
+                logger.error('Unable to send email: {}'.format(response.content))
+        except (RequestException, ConnectionError) as exc:
+            logger.error('Unable to contact with mail service: {}'.format(exc))
+
+
 class StoreTweetService:
 
     name = 'store_tweet_service'
+    mail = RpcProxy('mail')
 
     @rpc
     def send_payload(self, payload):
-        url = config.API_URL
+        url = settings.API_URL
         try:
             # TODO: Add some custom authorization header
             # for somekind of security
             response = requests.post(url, json=payload)
             if response.status_code not in VALID_STATUS_CODES:
-                print('error, invalid status code: {}'.format(response.status_code))
-                print('reason: {}'.format(response.content))
+                subject = 'Store service error'
+                text = {
+                    'status': response.reason,
+                    'content': response.text
+                }
+                self.mail.send.async(subject, text)
         except (RequestException, ConnectionError) as exc:
-            print('error')
+            subject = 'Store service connection error'
+            text = exc
+            self.mail.send.async(subject, text)
 
 
 class FavoritedTweetService:
@@ -54,7 +91,7 @@ class FavoritedTweetService:
         print('{0} has favorited the following tweet: {1}'.format(user, tweet))
         if action != FAVORITE:
             # self.api.delete_resource(tweet['id_str'])
-            print('Unvaforited')
+            logger.debug('Unvaforited')
         else:
             posted_at = datetime.strptime(tweet['created_at'], TWITTER_DATETIME_FORMAT)
             data = {
@@ -64,4 +101,4 @@ class FavoritedTweetService:
                 'text': tweet['text'],
                 'public_id': tweet['id_str']
             }
-            self.api.send_payload(data)
+            self.api.send_payload.async(data)

@@ -11,8 +11,6 @@ from nameko.standalone.rpc import ClusterRpcProxy
 
 import settings
 
-FAVORITE = 'favorite'
-
 
 def setup_twitter_auth():
     auth = OAuthHandler(consumer_key=settings.CONSUMER_KEY,
@@ -37,7 +35,6 @@ class FavoritedTweetsListener(StreamListener):
         to perform some work prior to entering the read loop.
         """
         self.theuser = self.api.me()
-        print('API User: {}'.format(self.theuser))
 
     def on_data(self, raw_data):
         data = json.loads(raw_data)
@@ -60,6 +57,7 @@ class FavoritedTweetsListener(StreamListener):
 
     def on_exception(self, exception):
         """Called when an unhandled exception occurs."""
+        logging.error('EXC: {}'.format(exception))
         return
 
     def on_event(self, status):
@@ -73,14 +71,24 @@ class FavoritedTweetsListener(StreamListener):
 
     def on_limit(self, track):
         """Called when a limitation notice arrives"""
+        logging.warn(track)
+        with ClusterRpcProxy(settings.RPC_CONFIG) as rpc:
+            subject = 'Tweetmark stream limitation'
+            rpc.mail_service.send.call_async(subject)
         return
 
     def on_error(self, status_code):
         """Called when a non-200 status code is returned"""
+        logging.error(status_code)
+        with ClusterRpcProxy(settings.RPC_CONFIG) as rpc:
+            subject = 'Tweetmark stream error'
+            rpc.mail_service.send.call_async(subject, status_code)
+
         return False
 
     def on_timeout(self):
         """Called when stream connection times out"""
+        logging.warn('Stream connection time out')
         return
 
     def on_disconnect(self, notice):
@@ -89,10 +97,19 @@ class FavoritedTweetsListener(StreamListener):
         Disconnect codes are listed here:
         https://dev.twitter.com/docs/streaming-apis/messages#Disconnect_messages_disconnect
         """
+        logging.warn(notice)
+        with ClusterRpcProxy(settings.RPC_CONFIG) as rpc:
+            subject = 'Tweetmark stream disconnected'
+            rpc.mail_service.send.call_async(subject, notice.get('code', ''))
+
         return
 
     def on_warning(self, notice):
         """Called when a disconnection warning message arrives"""
+        logging.debug(notice)
+        with ClusterRpcProxy(settings.RPC_CONFIG) as rpc:
+            subject = 'Tweetmark stream warning'
+            rpc.mail_service.send.call_async(subject, notice.get('message', ''))
         return
 
 
