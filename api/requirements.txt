@@ -1,0 +1,7 @@
+dj-database-url==0.4.1
+django==1.10.3
+djangorestframework
+django-taggit==0.21.3
+channels==0.17.3
+psycopg2
+whitenoise==3.2.2
