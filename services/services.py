@@ -37,18 +37,20 @@ class MailService:
             # Mailgun requires to have a non empty text body
             text = 'No body message'
 
-        if settings.DEBUG:
+        if not settings.SEND_MAIL:
             logger.debug('Sending email with subject {0} with contents: {1}'.format(subject, text))
             return
 
         try:
             response = requests.post(
-                settings.SANDBOX_URL,
-                auth=('api': settings.MAILGUN_API_KEY),
+                settings.SANDBOX_API_URL,
+                auth=('api', settings.MAILGUN_API_KEY),
                 data={'from': settings.SENDER,
-                    'to': settings.RECEIVER,
+                    'to': [settings.RECEIVER],
                     'subject': subject,
                     'text': text})
+
+            logger.debug(response.content)
             if response.status_code not in VALID_STATUS_CODES:
                 logger.error('Unable to send email: {}'.format(response.content))
         except (RequestException, ConnectionError) as exc:
@@ -58,14 +60,14 @@ class MailService:
 class StoreTweetService:
 
     name = 'store_tweet_service'
-    mail = RpcProxy('mail')
+    mail = RpcProxy('mail_service')
 
     @rpc
     def send_payload(self, payload):
         url = settings.API_URL
         try:
             # TODO: Add some custom authorization header
-            # for somekind of security
+            # for some kind of security
             response = requests.post(url, json=payload)
             if response.status_code not in VALID_STATUS_CODES:
                 subject = 'Store service error'
@@ -88,7 +90,6 @@ class FavoritedTweetService:
 
     @rpc
     def process_tweet(self, user, tweet, action):
-        print('{0} has favorited the following tweet: {1}'.format(user, tweet))
         if action != FAVORITE:
             # self.api.delete_resource(tweet['id_str'])
             logger.debug('Unvaforited')
@@ -99,6 +100,6 @@ class FavoritedTweetService:
                 'posted_at': posted_at.isoformat(),
                 'posted_by': get_twitter_public_url(tweet['user']['screen_name']),
                 'text': tweet['text'],
-                'public_id': tweet['id_str']
+                'ref_id': tweet['id_str']
             }
             self.api.send_payload.async(data)

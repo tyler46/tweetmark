@@ -1,4 +1,5 @@
 import logging
+import os
 
 from decouple import config
 from logging.handlers import TimedRotatingFileHandler
@@ -10,6 +11,7 @@ LOG_FILE_PATH = os.path.join(BASE_DIR, LOG_FILE)
 
 DEBUG = config('DEBUG', cast=bool)
 LOG_LEVEL = config('LOG_LEVEL', default=logging.DEBUG)
+SEND_MAIL = config('SEND_MAIL', cast=bool)
 
 # Mailgun settings
 SANDBOX_API_URL = config('SANDBOX_API_URL')
