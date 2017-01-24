@@ -1,4 +1,4 @@
 Tweemark
 =========
 
-Manage twitter favorites as read them later.
+Manage twitter favorites as bookmarks to read them later.
