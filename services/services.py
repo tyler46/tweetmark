@@ -19,8 +19,11 @@ TWITTER_DATETIME_FORMAT = '%a %b %d %H:%M:%S %z %Y'
 FAVORITE = 'favorite'
 
 
-def extract_url(entities):
-    return [item['expanded_url'] for item in entities['urls']][0]
+def extract_url(urls):
+    try:
+        return urls[0]['expanded_url']
+    except IndexError:
+        return ''
 
 
 def get_twitter_public_url(screen_name):
@@ -94,12 +97,18 @@ class FavoritedTweetService:
             # self.api.delete_resource(tweet['id_str'])
             logger.debug('Unvaforited')
         else:
-            posted_at = datetime.strptime(tweet['created_at'], TWITTER_DATETIME_FORMAT)
-            data = {
-                'link_url': extract_url(tweet['entities']),
-                'posted_at': posted_at.isoformat(),
-                'posted_by': get_twitter_public_url(tweet['user']['screen_name']),
-                'text': tweet['text'],
-                'ref_id': tweet['id_str']
-            }
-            self.api.send_payload.async(data)
+            logger.debug(tweet)
+            # if no url present, no reason to process
+            urls = tweet['entities']['urls']
+            if not urls:
+                logger.debug('Ignoring tweet ...')
+            else:
+                posted_at = datetime.strptime(tweet['created_at'], TWITTER_DATETIME_FORMAT)
+                data = {
+                    'link_url': extract_url(urls),
+                    'posted_at': posted_at.isoformat(),
+                    'posted_by': get_twitter_public_url(tweet['user']['screen_name']),
+                    'text': tweet['text'],
+                    'ref_id': tweet['id_str']
+                }
+                self.api.send_payload.async(data)
