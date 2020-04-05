@@ -1,3 +1,0 @@
-python-decouple==3.0
-tweepy==3.5.0
-nameko==2.4.3
