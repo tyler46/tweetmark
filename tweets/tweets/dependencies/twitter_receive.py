@@ -24,7 +24,7 @@ class TwitterClient:
 
     def receive_favorites(self, page):
         me = self.api.me()
-        return self.api.favorites(id=me.id, page=page)
+        return self.api.favorites(id=me.id, page=page, tweet_mode="extended")
 
 
 class TwitterFavoritesReceive(Entrypoint):
